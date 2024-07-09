@@ -163,6 +163,14 @@ class OuterbasePluginCell_$PLUGIN_ID extends HTMLElement {
     connectedCallback() {
         this.config = new OuterbasePluginConfig_$PLUGIN_ID(decodeAttributeByName_$PLUGIN_ID(this, "configuration"))
         this.render()
+
+        // When the SVG is clicked, we want to trigger an event to the parent
+        this.shadow.querySelector('span').addEventListener('click', () => {
+            triggerEvent_$PLUGIN_ID(this, {
+                action: "onedit",
+                value: true,
+            })
+        })
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -217,8 +225,76 @@ class OuterbasePluginCell_$PLUGIN_ID extends HTMLElement {
 // TARGET date (e.g. Local Timezone) and the format of the date and time.
 
 
+
+
+var templateEditor_$PLUGIN_ID = document.createElement("template");
+templateEditor_$PLUGIN_ID.innerHTML = `
+<style>
+    #container {
+        transform: translateY(4px);
+        margin-top: 4px;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #f5f5f5;
+        color: var(--ob-text-color);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-family: Inter, sans-serif;
+    }
+
+    .dark {
+        border: 1px solid #262626 !important;
+        background-color: #171717 !important;
+    }
+</style>
+
+<div id="container" class="theme-container">
+    <astra-calendar single-month-view></astra-calendar>
+</div>
+`;
+
+class OuterbasePluginEditor_$PLUGIN_ID extends HTMLElement {
+    static get observedAttributes() {
+        return observableAttributes_$PLUGIN_ID;
+    }
+
+    config = new OuterbasePluginConfig_$PLUGIN_ID({})
+
+    constructor() {
+        super()
+
+        this.shadow = this.attachShadow({ mode: "open" })
+        this.shadow.appendChild(templateEditor_$PLUGIN_ID.content.cloneNode(true))
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        this.config = new OuterbasePluginConfig_$PLUGIN_ID(decodeAttributeByName_$PLUGIN_ID(this, "configuration"))
+        let metadata = decodeAttributeByName_$PLUGIN_ID(this, "metadata")
+        this.config.theme = metadata?.theme
+
+        var element = this.shadow.querySelector(".theme-container")
+        element.classList.remove("dark")
+        element.classList.add(this.config.theme);
+
+        this.render()
+    }
+    
+    connectedCallback() {
+        this.config = new OuterbasePluginConfig_$PLUGIN_ID(decodeAttributeByName_$PLUGIN_ID(this, "configuration"))
+        this.render()
+    }
+
+    render() {
+        
+    }
+}
+
+
 // DO NOT change the name of this variable or the classes defined in this file.
 // Changing the name of this variable will cause your plugin to not work properly
 // when installed in Outerbase.
 // window.customElements.define('outerbase-plugin-cell', OuterbasePluginCell_$PLUGIN_ID)
 window.customElements.define('outerbase-plugin-cell-$PLUGIN_ID', OuterbasePluginCell_$PLUGIN_ID)
+window.customElements.define('outerbase-plugin-editor-$PLUGIN_ID', OuterbasePluginEditor_$PLUGIN_ID)

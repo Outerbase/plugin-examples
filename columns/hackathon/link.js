@@ -1,9 +1,4 @@
-var privileges_$PLUGIN_ID = [
-    'cellValue',
-    'configuration',
-]
-
-var observableAttributes = [
+var observableAttributes_$PLUGIN_ID = [
     // The value of the cell that the plugin is being rendered in
     "cellValue",
     // The configuration object that the user specified when installing the plugin
@@ -12,12 +7,12 @@ var observableAttributes = [
     "metadata"
 ]
 
-var OuterbaseEvent = {
+var OuterbaseEvent_$PLUGIN_ID = {
     // The user has triggered an action to save updates
     onSave: "onSave",
 }
 
-var OuterbaseColumnEvent = {
+var OuterbaseColumnEvent_$PLUGIN_ID = {
     // The user has began editing the selected cell
     onEdit: "onEdit",
     // Stops editing a cells editor popup view and accept the changes
@@ -26,6 +21,16 @@ var OuterbaseColumnEvent = {
     onCancelEdit: "onCancelEdit",
     // Updates the cells value with the provided value
     updateCell: "updateCell",
+}
+
+var triggerEvent_$PLUGIN_ID = (fromClass, data) => {
+    const event = new CustomEvent("custom-change", {
+        detail: data,
+        bubbles: true,
+        composed: true
+    });
+
+    fromClass.dispatchEvent(event);
 }
 
 /**
@@ -48,9 +53,11 @@ var OuterbaseColumnEvent = {
  */
 class OuterbasePluginConfig_$PLUGIN_ID {
     theme = "light"
+    baseURL = ""
 
     constructor(object) {
         this.theme = object?.theme ? object.theme : "light";
+        this.baseURL = object?.baseUrl ? object.baseUrl : "";
     }
 }
 
@@ -124,7 +131,7 @@ templateCell_$PLUGIN_ID.innerHTML = `
 
 class OuterbasePluginCell_$PLUGIN_ID extends HTMLElement {
     static get observedAttributes() {
-        return privileges_$PLUGIN_ID
+        return observableAttributes_$PLUGIN_ID
     }
 
     config = new OuterbasePluginConfig_$PLUGIN_ID({})
@@ -142,7 +149,8 @@ class OuterbasePluginCell_$PLUGIN_ID extends HTMLElement {
 
         // When a user clicks the span open a new tab with the link
         this.shadow.querySelector('span').addEventListener('click', () => {
-            window.open(this.getAttribute('cellvalue'), '_blank')
+            let url = `${this.config.baseURL}${this.getAttribute('cellvalue')}`
+            window.open(url, '_blank')
         })
     }
 
@@ -168,12 +176,110 @@ class OuterbasePluginCell_$PLUGIN_ID extends HTMLElement {
     }
 }
 
+
+
+
+
+
 // For Configuration view, let them optionally provide a PREFIX URL
 // to attach to all URL's in the column. If none is provided, just
 // try using the value of the cell.
+
+
+/**
+ * ******************
+ * Configuration View
+ * ******************
+ * 
+ *  ░░░░░░░░░░░░░░░░░
+ *  ░░░░░▀▄░░░▄▀░░░░░
+ *  ░░░░▄█▀███▀█▄░░░░
+ *  ░░░█▀███████▀█░░░
+ *  ░░░█░█▀▀▀▀▀█░█░░░
+ *  ░░░░░░▀▀░▀▀░░░░░░
+ *  ░░░░░░░░░░░░░░░░░
+ * 
+ * When a user either installs a plugin onto a table resource for the first time
+ * or they configure an existing installation, this is the view that is presented
+ * to the user. For many plugin applications it's essential to capture information
+ * that is required to allow your plugin to work correctly and this is the best
+ * place to do it.
+ * 
+ * It is a requirement that a save button that triggers the `OuterbaseEvent.onSave`
+ * event exists so Outerbase can complete the installation or preference update
+ * action.
+ */
+var templateConfiguration = document.createElement("template")
+templateConfiguration.innerHTML = `
+<style>
+    #container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        height: 100%;
+        overflow-y: scroll;
+        padding: 40px 50px 65px 40px;
+    }
+
+    h1 {
+        color: var(--ob-text-color);
+    }
+</style>
+
+<div id="container" class="theme-container">
+    <h1>Select URL Options</h1>
+
+    <div id="options">
+        <div>Base URL: (optional)</div>
+        <input type="text" id="prefixValue" placeholder="URL Prefix" />
+    </div>
+
+    <astra-button size="compact" id="saveButton">Save View</astra-button>
+</div>
+`
+
+class OuterbasePluginConfiguration_$PLUGIN_ID extends HTMLElement {
+    static get observedAttributes() {
+        return observableAttributes_$PLUGIN_ID
+    }
+
+    config = new OuterbasePluginConfig_$PLUGIN_ID({})
+
+    constructor() {
+        super()
+
+        this.shadow = this.attachShadow({ mode: "open" })
+        this.shadow.appendChild(templateConfiguration.content.cloneNode(true))
+    }
+
+    connectedCallback() {
+        this.config = new OuterbasePluginConfig_$PLUGIN_ID(decodeAttributeByName_$PLUGIN_ID(this, "configuration"))
+        this.config.cellValue = decodeAttributeByName_$PLUGIN_ID(this, "cellValue")
+
+        var saveButton = this.shadow.getElementById("saveButton");
+        saveButton.addEventListener("click", () => {
+            this.config.baseURL = this.shadow.getElementById("prefixValue").value
+
+            triggerEvent_$PLUGIN_ID(this, {
+                action: OuterbaseEvent_$PLUGIN_ID.onSave,
+                value: this.config
+            })
+        });
+
+        this.render()
+    }
+
+    render() {
+        
+    }
+}
 
 // DO NOT change the name of this variable or the classes defined in this file.
 // Changing the name of this variable will cause your plugin to not work properly
 // when installed in Outerbase.
 // window.customElements.define('outerbase-plugin-cell', OuterbasePluginCell_$PLUGIN_ID)
+// window.customElements.define('outerbase-plugin-configuration', OuterbasePluginConfiguration_$PLUGIN_ID)
+
+
 window.customElements.define('outerbase-plugin-cell-$PLUGIN_ID', OuterbasePluginCell_$PLUGIN_ID)
+window.customElements.define('outerbase-plugin-configuration-$PLUGIN_ID', OuterbasePluginConfiguration_$PLUGIN_ID)

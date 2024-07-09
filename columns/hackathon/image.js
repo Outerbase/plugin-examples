@@ -130,7 +130,7 @@ templateCell_$PLUGIN_ID.innerHTML = `
 </style>
 
 <div id="container">
-    <img src="" alt="Google Logo">
+    <img src="" alt="">
 </div>
 
 <div id="overlay">
@@ -164,10 +164,8 @@ class OuterbasePluginCell_$PLUGIN_ID extends HTMLElement {
 
         var viewImageButton = this.shadow.querySelector("img");
         viewImageButton.addEventListener("click", () => {
-            this.callCustomEvent({
-                action: 'onedit',
-                value: true
-            })
+            let url = `${this.getAttribute('cellvalue')}`
+            window.open(url, '_blank')
         });
     }
 

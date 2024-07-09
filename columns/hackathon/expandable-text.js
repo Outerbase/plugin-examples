@@ -63,7 +63,8 @@ var decodeAttributeByName_$PLUGIN_ID = (fromClass, name) => {
     const encodedJSON = fromClass.getAttribute(name);
     const decodedJSON = encodedJSON
         ?.replace(/&quot;/g, '"')
-        ?.replace(/&#39;/g, "'");
+        ?.replace(/&#39;/g, "'")
+        ?.replace(/&grave;/g, "`");
     return decodedJSON ? JSON.parse(decodedJSON) : {};
 }
 
@@ -82,17 +83,43 @@ var decodeAttributeByName_$PLUGIN_ID = (fromClass, name) => {
  * 
  * TBD
  */
+
+// #container {
+//     height: 100%;
+//     min-height: 34px;
+//     width: calc(100% - 16px);
+//     padding: 0 8px;
+//     position: relative;
+//     display: flex;
+//     align-items: center;
+//     gap: 0px;
+// }
+
+// #container {
+//     height: 100%;
+//     min-height: 34px;
+//     position: absolute;
+//     top: 0;
+//     left: 12px;
+//     right: 8px;
+//     bottom: 0;
+//     display: flex;
+//     align-items: center;
+//     gap: 0px;
+//     transform: translateY(-1px);
+// }
 var templateCell_$PLUGIN_ID = document.createElement('template')
 templateCell_$PLUGIN_ID.innerHTML = `
 <style>
     #container {
         height: 100%;
-        width: calc(100% - 16px);
-        padding: 0 8px;
+        min-height: 34px;
         position: relative;
+        padding: 0 8px 0 12px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 0px;
+        transform: translateY(-1px);
     }
 
     input {
@@ -105,6 +132,10 @@ templateCell_$PLUGIN_ID.innerHTML = `
         text-overflow: ellipsis;
         overflow: hidden;
         color: var(--ob-text-color);
+        font-size: 12px;
+        font-family: "Inter", sans-serif;
+        outline: none;
+        padding: 0;
     }
 
     input:focus {
@@ -125,12 +156,18 @@ templateCell_$PLUGIN_ID.innerHTML = `
     #container:hover svg {
         opacity: 1;
     }
+
+    #outer-container {
+        position: relative;
+        width: 100%;
+        height: 34px;
+    }
 </style>
 
-<div id="container">
-    <input type="text" id="image-value" placeholder="NULL">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#000000" viewBox="0 0 256 256"><path d="M216,48V96a8,8,0,0,1-16,0V67.31l-50.34,50.35a8,8,0,0,1-11.32-11.32L188.69,56H160a8,8,0,0,1,0-16h48A8,8,0,0,1,216,48ZM106.34,138.34,56,188.69V160a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16H67.31l50.35-50.34a8,8,0,0,0-11.32-11.32Z"></path></svg>
-</div>
+    <div id="container">
+        <input type="text" id="image-value" placeholder="NULL">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#000000" viewBox="0 0 256 256"><path d="M216,48V96a8,8,0,0,1-16,0V67.31l-50.34,50.35a8,8,0,0,1-11.32-11.32L188.69,56H160a8,8,0,0,1,0-16h48A8,8,0,0,1,216,48ZM106.34,138.34,56,188.69V160a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16H67.31l50.35-50.34a8,8,0,0,0-11.32-11.32Z"></path></svg>
+    </div>
 `
 
 class OuterbasePluginCell_$PLUGIN_ID extends HTMLElement {
@@ -158,12 +195,53 @@ class OuterbasePluginCell_$PLUGIN_ID extends HTMLElement {
                 value: true,
             })
         })
+
+        // Listen to paste event on input
+        this.shadow.querySelector('input').addEventListener('paste', (event) => {
+            event.preventDefault()
+            let text = event.clipboardData.getData('text/plain')
+            document.execCommand('insertText', false, text)
+
+            // Escape single and double quotes from `text`
+            // text = JSON.stringify(text)
+            // ?.replace(/"/g, '&quot;')
+            // .replace(/'/g, '&#39;')
+
+            // // Remove quotes around the text
+            // text = text.substring(1, text.length - 1)
+
+            // Send the event to the parent
+            triggerEvent_$PLUGIN_ID(this, {
+                action: "updatecell",
+                value: text,
+            })
+        })
+
+        // Detect when input value changes
+        this.shadow.querySelector('input').addEventListener('input', (event) => {
+            let cellValue = event.target.value
+
+            // Escape quotes from cellValue
+            // cellValue = JSON.stringify(cellValue)
+            // ?.replace(/"/g, '&quot;')
+            // .replace(/'/g, '&#39;') //cellValue.replace(/"/g, '\\"')//.replace(/'/g, "\\'").replace(/`/g, "\\`").replace(/\\/g, "\\\\")
+
+            // Set the input value to the cell value
+            this.setAttribute('cellvalue', cellValue)
+            this.shadow.querySelector('input').value = cellValue
+
+            // Send the event to the parent
+            triggerEvent_$PLUGIN_ID(this, {
+                action: "updatecell",
+                value: cellValue,
+            })
+        })
     }
 
     render() {
         let cellValue = this.getAttribute('cellvalue')
 
-        if (cellValue.length === 0) {
+        if (cellValue.length === 0 || (cellValue && cellValue.toLowerCase() === "null")) {
             this.shadow.querySelector('input').placeholder = "NULL"
         } else {
             this.shadow.querySelector('input').value = cellValue
@@ -186,7 +264,6 @@ templateEditor_$PLUGIN_ID.innerHTML = `
     #container {
         transform: translateY(4px);
         margin-top: 4px;
-        padding: 16px;
         width: 400px;
         height: 200px;
         border: 1px solid #e5e5e5;
@@ -214,32 +291,43 @@ templateEditor_$PLUGIN_ID.innerHTML = `
     textarea {
         resize: none;
         flex: 1;
-        border: 1px solid #e5e5e5;
-        border-radius: 4px;
-        padding: 8px;
+        background: #f5f5f5;
+        border: transparent;
+        font-family: Inter, sans-serif;
+        font-size: 12px;
+    }
+
+    .dark textarea {
+        background: #171717 !important;
+        color: white;
     }
 
     textarea:focus { 
         outline: none !important;
-        border: 3px solid #e5e5e5;
-    }
-
-    .dark textarea {
-        border: 1px solid #a3a3a3;
-        background: #e5e5e5 !important;
     }
 
     #header {
         display: flex;
-        gap: 4px;
-        align-items: center;
+        flex: 1;
+        padding: 16px 16px 4px 16px;
     }
 
     #footer {
         display: flex;
-        flex-direction: row-reverse;
         gap: 8px;
         align-items: center;
+        border-top: 1px solid #e5e5e5;
+        padding: 8px 12px 8px 18px;
+    }
+
+    .dark #footer {
+        border-top: 1px solid #262626;
+    }
+
+    #footer > span {
+        font-size: 12px;
+        font-family: Inter, sans-serif;
+        flex: 1;
     }
 
     svg {
@@ -254,19 +342,25 @@ templateEditor_$PLUGIN_ID.innerHTML = `
         line-height: 16px;
         cursor: pointer;
     }
+
+    #null-placeholder {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        pointer-events: none;
+    }
 </style>
 
 <div id="container" class="theme-container">
     <div id="header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#000000" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z"></path></svg>
-        <p>Cell Text</p>
+        <textarea></textarea>
+        <p id="null-placeholder">NULL</p>
     </div>
 
-    <textarea></textarea>
-
     <div id="footer">
+        <span id="character-count"></span>
+        <div id="cancel-button">Discard</div>
         <astra-button id="update-button" size="compact">Update</astra-button>
-        <div id="cancel-button">Cancel</div>
     </div>
 </div>
 `;
@@ -277,6 +371,8 @@ class OuterbasePluginEditor_$PLUGIN_ID extends HTMLElement {
     }
 
     config = new OuterbasePluginConfig_$PLUGIN_ID({})
+    tableSchema = {}
+    metadata = {}
 
     constructor() {
         super()
@@ -299,19 +395,30 @@ class OuterbasePluginEditor_$PLUGIN_ID extends HTMLElement {
     
     connectedCallback() {
         this.config = new OuterbasePluginConfig_$PLUGIN_ID(decodeAttributeByName_$PLUGIN_ID(this, "configuration"))
+        this.tableSchema = decodeAttributeByName_$PLUGIN_ID(this, "tableschemavalue")
+        this.metadata = decodeAttributeByName_$PLUGIN_ID(this, "metadata")
+        const columnName = this.getAttribute('columnname')
         this.render()
 
+        const availableColumns = this.tableSchema.columns
+
+        // Get the column object from the table schema
+        const column = availableColumns?.find(column => column.name === columnName)
+        this.maximumCharacterCount = column?.character_maximum_length || null
+        this.updateCharacterCount()
+
         // Listen to input changes in textarea
-        // this.shadow.querySelector('textarea').addEventListener('input', (event) => {
-        //     // this.config.cellValue = event.target.value
+        this.shadow.querySelector('textarea').addEventListener('input', (event) => {
+            const cellValue = event.target.value
 
-        //     console.log('Textarea updated: ', event.target.value)
+            if (cellValue.length === 0 || (cellValue && cellValue.toLowerCase() === "null")) {
+                this.shadow.querySelector('#null-placeholder').style.display = "block"
+            } else {
+                this.shadow.querySelector('#null-placeholder').style.display = "none"
+            }
 
-        //     triggerEvent_$PLUGIN_ID(this, {
-        //         action: "updatecell",
-        //         value: event.target.value,
-        //     })
-        // })
+            this.updateCharacterCount()
+        })
         
         // Listen to `update-button` and `cancel-button` clicks
         this.shadow.querySelector('#update-button').addEventListener('click', () => {
@@ -322,6 +429,17 @@ class OuterbasePluginEditor_$PLUGIN_ID extends HTMLElement {
                 action: "updatecell",
                 value,
             })
+
+            triggerEvent_$PLUGIN_ID(this, {
+                action: "onstopedit"
+            })
+
+            // Close the editor after event has saved changes
+            setTimeout(() => {
+                triggerEvent_$PLUGIN_ID(this, {
+                    action: "onstopedit"
+                })
+            }, 500);
         })
 
         this.shadow.querySelector('#cancel-button').addEventListener('click', () => {
@@ -336,6 +454,49 @@ class OuterbasePluginEditor_$PLUGIN_ID extends HTMLElement {
         // Get the `cellValue` and populate it in the `textarea`
         let cellValue = this.getAttribute('cellvalue')
         this.shadow.querySelector('textarea').value = cellValue
+
+        if (cellValue.length === 0 || (cellValue && cellValue.toLowerCase() === "null")) {
+            // this.shadow.querySelector('textarea').placeholder = "NULL"
+            this.shadow.querySelector('textarea').value = ""
+            this.shadow.querySelector('#null-placeholder').style.display = "block"
+        } else {
+            this.shadow.querySelector('textarea').value = cellValue
+            this.shadow.querySelector('#null-placeholder').style.display = "none"
+        }
+
+        // If `this.metadata.editable` is false, hide the button
+        if (this.metadata.editable === false) {
+            this.shadow.querySelector('#footer').style.display = "none"
+
+            // Set textarea to readonly
+            this.shadow.querySelector('textarea').readOnly = true
+        } else {
+            this.shadow.querySelector('#footer').style.display = "flex"
+
+            // Set textarea to readonly
+            this.shadow.querySelector('textarea').readOnly = false
+        }
+    }
+
+    updateCharacterCount() {
+        const currentCharacterLength = this.shadow.querySelector('textarea').value.length
+
+        if (this.maximumCharacterCount) {
+            const formattedCharacterLength = Number(currentCharacterLength).toLocaleString();
+            const formattedMaxNumber = Number(this.maximumCharacterCount).toLocaleString();
+            this.shadow.querySelector('#character-count').textContent = `${formattedCharacterLength}/${formattedMaxNumber}`;
+        } else {
+            this.shadow.querySelector('#character-count').textContent = ``;
+        }
+
+        // If the character length exceeds the maximum character count, show the text in red
+        if (currentCharacterLength > this.maximumCharacterCount) {
+            this.shadow.querySelector('#character-count').style.color = "#F0384E";
+            this.shadow.querySelector('#character-count').style.opacity = 1;
+        } else {
+            this.shadow.querySelector('#character-count').style.color = "var(--ob-text-color)";
+            this.shadow.querySelector('#character-count').style.opacity = 0.5;
+        }
     }
 }
 

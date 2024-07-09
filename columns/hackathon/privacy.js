@@ -63,7 +63,8 @@ var decodeAttributeByName_$PLUGIN_ID = (fromClass, name) => {
     const encodedJSON = fromClass.getAttribute(name);
     const decodedJSON = encodedJSON
         ?.replace(/&quot;/g, '"')
-        ?.replace(/&#39;/g, "'");
+        ?.replace(/&#39;/g, "'")
+        ?.replace(/&grave;/g, "`");
     return decodedJSON ? JSON.parse(decodedJSON) : {};
 }
 
@@ -94,7 +95,7 @@ templateCell_$PLUGIN_ID.innerHTML = `
     }
 
     input {
-        height: 100%;
+        height: 32px;
         flex: 1;
         background-color: transparent;
         border: 0;

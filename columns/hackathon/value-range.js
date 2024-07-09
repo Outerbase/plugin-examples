@@ -401,6 +401,7 @@ class OuterbasePluginConfiguration_$PLUGIN_ID extends HTMLElement {
     }
 
     async fetchMinMaxValues() {
+        // Testing locally with this
         // this.minValue = 10
         // this.maxValue = 100
         // this.smartRangeLayout()

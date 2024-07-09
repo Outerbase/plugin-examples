@@ -407,7 +407,10 @@ class OuterbasePluginConfiguration_$PLUGIN_ID extends HTMLElement {
 
         var saveButton = this.shadow.getElementById("saveButton");
         saveButton.addEventListener("click", () => {
-            // console.log('Saving config: ', this.config)
+            // Clear FK cache
+            const cacheName = 'pluginForeignKeyCache'
+            localStorage.removeItem(cacheName)
+
             triggerEvent_$PLUGIN_ID(this, {
                 action: OuterbaseEvent_$PLUGIN_ID.onSave,
                 value: this.config
